@@ -7,10 +7,6 @@ startTime = datetime.now()
 # Libraries:
 import os
 dirname = os.path.dirname(__file__) # relative filepaths
-import math
-import numpy as np
-import matplotlib.pyplot as plt
-import binascii
 
 # User Inputs:
 imgFileName = 'ldem_4.img' # filename of .img PDS DEM file
@@ -18,8 +14,7 @@ txtOutFileName = 'testPy2.txt' # filename of .txt Output file
 LINES = 720 # rows of data, take from PDS label
 LINE_SAMPLES = 1440 # columns per row, take from PDS label
 SAMPLE_BITS = 16 # number of bits per DN sample, take from PDS label
-SAMPLE_BYTES = int(SAMPLE_BITS/8) # number of bytes per DN sample
-chunk_size = int(SAMPLE_BYTES*LINE_SAMPLES) # blocksize (bytes) of data buffer (one line at a time)
+chunk_size = int(SAMPLE_BITS*LINE_SAMPLES/8) # blocksize (bytes) of data buffer (one line at a time)
 
 # Functions:
 def read_in_chunks(file_object, chunk_size):
