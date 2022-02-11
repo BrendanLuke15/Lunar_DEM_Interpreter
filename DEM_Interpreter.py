@@ -10,7 +10,7 @@ dirname = os.path.dirname(__file__) # relative filepaths
 
 # User Inputs:
 imgFileName = 'ldem_4.img' # filename of .img PDS DEM file
-txtOutFileName = 'testPy2.txt' # filename of .txt Output file
+txtOutFileName = 'ldem_4.txt' # filename of .txt Output file
 LINES = 720 # rows of data, take from PDS label
 LINE_SAMPLES = 1440 # columns per row, take from PDS label
 SAMPLE_BITS = 16 # number of bits per DN sample, take from PDS label
@@ -28,15 +28,14 @@ def read_in_chunks(file_object, chunk_size):
 def write_chunk(file_object,datachunk,endLine):
     # write chunk to text file, carraige return if last sample in line
     if endLine:
-        file_object.write(datachunk + '\n')#,'a')
+        file_object.write(datachunk + '\n')
     else:
-        file_object.write(datachunk)#),'a')
+        file_object.write(datachunk)
 
 # Script:
 f = open(dirname + '/' + imgFileName,'rb') # open file
 f_out = open(dirname + '/' + txtOutFileName,'a') # open file
 for datachunk in read_in_chunks(f,chunk_size):
-    #write_chunk(f_out,str(binascii.hexlify(datachunk)),True)
     write_chunk(f_out,str(datachunk.hex()),True)
 f.close()
 

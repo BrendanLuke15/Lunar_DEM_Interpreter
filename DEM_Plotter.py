@@ -9,7 +9,6 @@ startTime = datetime.now()
 # Libraries:
 import os
 dirname = os.path.dirname(__file__) # relative filepaths
-import math
 import numpy as np
 import matplotlib.pyplot as plt
 import textwrap
@@ -19,36 +18,50 @@ txtFileName = 'testPy2.txt' # filename of .txt Output file
 LINES = 720 # rows of data, take from PDS label
 LINE_SAMPLES = 1440 # columns per row, take from PDS label
 SAMPLE_BITS = 16 # number of bits per DN sample, take from PDS label
+SIGNED = True # is data signed of unsigned, interpret from PDS label
 chunk_size = int(SAMPLE_BITS*LINE_SAMPLES/8) # blocksize (bytes) of data buffer (one line at a time)
 
 # Functions:
-def processLine(lineStr,LINE_SAMPLES,dataArray,row,SAMPLE_BITS):
+def processLine(lineStr,dataArray,row,SAMPLE_BITS,twosCompFactor,scaleFactor):
     # function to process the line into the dataArray
     tempList = textwrap.wrap(lineStr,4)
     col = 0
-    scaleFactor = int((2**SAMPLE_BITS)/(2**(SAMPLE_BITS-8)))
     for x in tempList:
-        tempStr = x [::-1]
-        dataArray[row][col] = np.byte(int("0x"+str(tempStr),base=16)/scaleFactor) # scale pixel data to 8 bits unsigned
-        #dataArray[row][col] = np.short(int("0x"+str(tempStr),base=16)) # scale pixel data to 16 bits unsigned
+        tempStr = x[2]+x[3]+x[0]+x[1]  # reverse byte order because data is LSB(yte)_INTEGER
+        if int('0x'+tempStr,base=16) >= twosCompFactor:
+            datum = int('0x'+tempStr,base=16) - 2**SAMPLE_BITS
+        else:
+            datum = int('0x'+tempStr,base=16)
+        dataArray[row][col] = datum/scaleFactor
         col += 1
     return dataArray
 
 # Script:
-dataArray = np.empty((LINES, LINE_SAMPLES),np.byte) # pre-allocate image array (8-bit unsigned)
-#dataArray = np.empty((LINES, LINE_SAMPLES),np.short) # pre-allocate image array (16-bit unsigned)
+scaleFactor = 2
+dataArray = np.empty((LINES, LINE_SAMPLES),np.short) # pre-allocate image array (16-bit signed)
+
+if SIGNED:
+    twosCompFactor = 2**(SAMPLE_BITS-1)
+else:
+    twosCompFactor = 0
+
 row = 0
 with open(dirname + '/' + txtFileName) as file:
     while line := file.readline():
-        dataArray = processLine(line,LINE_SAMPLES,dataArray,row,SAMPLE_BITS)
+        dataArray = processLine(line,dataArray,row,SAMPLE_BITS,twosCompFactor,scaleFactor)
         row += 1
+latitude = np.linspace(90,-90,LINES) # flips image vertically to north up view
+longitude = np.linspace(0,360,LINE_SAMPLES)
 
-plt.contourf(dataArray,cmap=plt.cm.bone)
-plt.xlim((0,LINE_SAMPLES))
-plt.ylim((0,LINES))
-
-print(np.amax(dataArray))
-print(np.amin(dataArray))
+# Plotting:
+fig1, ax1 = plt.subplots(constrained_layout=True)
+CS = plt.contourf(longitude,latitude,dataArray,levels=50,cmap=plt.cm.bone)
+ax1.set_title('LDEM_4 LOLA DEM')
+ax1.set_ylabel('Latitude (°)')
+ax1.set_xlabel('Longitude (°)')
+ax1.set_aspect('equal', 'box')
+cbar = fig1.colorbar(CS)
+cbar.ax.set_ylabel('Elevation (m)')
 
 # Stop Clock
 print('Done! Execution took ' + str(datetime.now() - startTime))
